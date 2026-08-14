@@ -223,7 +223,7 @@ flowchart TB
 
 ---
 
-# 4. Interfaces
+# 3. Interfaces
 
 | Function          | Interface              | O1 Adapter Role                                              | Destination             |
 | ----------------- | ---------------------- | ------------------------------------------------------------ | ----------------------- |
@@ -235,9 +235,9 @@ flowchart TB
 
 ---
 
-# 5. Installation
+# 4. Installation
 
-## 5.1 Ubuntu Packages
+## 4.1 Ubuntu Packages
 
 Install the required Python packages:
 
@@ -261,9 +261,9 @@ pip install -r requirements.txt
 
 ---
 
-# 6. Operation
+# 5. Operation
 
-## 6.1 Start the O1 Adapter
+## 5.1 Start the O1 Adapter
 
 Make sure a NETCONF server is running and reachable.
 
@@ -286,7 +286,7 @@ If the connection succeeds, the adapter retrieves the `running` datastore and ge
 
 ---
 
-# 7. Configuration Profiles
+# 6. Configuration Profiles
 
 The adapter provides templates for the following split components:
 
@@ -336,7 +336,7 @@ python3 src/o1_adapter.py --template <file>
 
 ---
 
-## 7.1 RU Profile
+## 6.1 RU Profile
 
 The special `ru` profile skips YAML rendering and forwards the raw NETCONF configuration downstream.
 
@@ -346,7 +346,7 @@ python3 src/o1_adapter.py --profile ru
 
 ---
 
-# 8. Configuration Health
+# 7. Configuration Health
 
 The adapter exposes a REST endpoint for checking configuration health.
 
@@ -364,7 +364,7 @@ This status can be used to trigger a restart of the DU application.
 
 ---
 
-## 8.1 Reset Configuration Health
+## 7.1 Reset Configuration Health
 
 After the DU has been restarted and the configuration has been successfully applied, reset the health state:
 
@@ -378,9 +378,9 @@ curl \
 
 ---
 
-# 9. Data Flows
+# 8. Data Flows
 
-## 9.1 Configuration Management — CM
+## 8.1 Configuration Management — CM
 
 The CM flow retrieves the NETCONF `running` datastore, selects the appropriate profile/template, and generates the OCUDU configuration.
 
@@ -412,7 +412,7 @@ sequenceDiagram
 
 ---
 
-## 9.2 Configuration Health Flow
+## 8.2 Configuration Health Flow
 
 ```mermaid
 sequenceDiagram
@@ -452,7 +452,7 @@ sequenceDiagram
 
 ---
 
-# 10. Fault Management — FM
+# 9. Fault Management — FM
 
 Fault information is communicated from the OCUDU side toward the SMO through VES.
 
@@ -481,7 +481,7 @@ sequenceDiagram
 
 ---
 
-# 11. Performance Management — PM
+# 10. Performance Management — PM
 
 The PM implementation uses OCUDU's native WebSocket metrics service as its source.
 
@@ -500,7 +500,7 @@ The implementation uses the standardized 3GPP PM XML structure, including measur
 
 ---
 
-## 11.1 PM Message Sequence
+## 10.1 PM Message Sequence
 
 ```mermaid
 sequenceDiagram
@@ -548,7 +548,7 @@ sequenceDiagram
 
 ---
 
-## 11.2 PM Data and Notification Paths
+## 10.2 PM Data and Notification Paths
 
 The PM architecture uses two complementary paths.
 
@@ -595,7 +595,7 @@ This separation is a key part of the implemented PM architecture.
 
 ---
 
-# 12. PM End-to-End Architecture
+# 11. PM End-to-End Architecture
 
 The complete implemented PM path is shown below.
 
@@ -668,7 +668,7 @@ The resource FDN is used as the measurement identity and the PM counter name is 
 
 ---
 
-# 13. PM File Server
+# 12. PM File Server
 
 The O1 Adapter exposes generated PM files through its HTTP file server.
 
@@ -701,7 +701,7 @@ The DataFileCollector uses the PM file-server endpoint to retrieve generated mea
 
 ---
 
-# 14. PM Deployment Verification
+# 13. PM Deployment Verification
 
 After deploying the O1 Adapter and Helm chart, verify that the O1 service exposes both ports:
 
@@ -751,11 +751,11 @@ from(bucket: "ran-pm-metrics")
 
 ---
 
-# 15. RU Controller
+# 14. RU Controller
 
 The RU controller is a standalone application for configuring an O-RU over M-Plane.
 
-## 15.1 Retrieve RU Configuration
+## 14.1 Retrieve RU Configuration
 
 For an RU exposing NETCONF on `10.10.0.100`:
 
@@ -770,7 +770,7 @@ For an RU exposing NETCONF on `10.10.0.100`:
 
 ---
 
-## 15.2 Activate RU Carrier
+## 14.2 Activate RU Carrier
 
 ```bash
 ./ru_controller.py \
@@ -785,7 +785,7 @@ For an RU exposing NETCONF on `10.10.0.100`:
 
 ---
 
-## 15.3 Full RU Configuration
+## 14.3 Full RU Configuration
 
 ```bash
 ./ru_controller.py \
@@ -812,7 +812,7 @@ Full configuration has been verified for a subset of configurations, including T
 
 ---
 
-# 16. RU Forwarding
+# 15. RU Forwarding
 
 With `--ru_forward`, the O1 Adapter can forward configuration updates from the DU NETCONF server to the RU NETCONF server.
 
@@ -845,7 +845,7 @@ python3 src/o1_adapter.py \
 
 ---
 
-## 16.1 RU Forwarding Message Sequence
+## 15.1 RU Forwarding Message Sequence
 
 ```mermaid
 sequenceDiagram
@@ -868,7 +868,7 @@ sequenceDiagram
 
 ---
 
-# 17. Kubernetes Deployment
+# 16. Kubernetes Deployment
 
 In Kubernetes, the O1 Adapter is intended to run as a sidecar container alongside the OCUDU CU/DU.
 
@@ -900,7 +900,7 @@ The sidecar architecture allows the adapter to independently handle management f
 
 ---
 
-# 18. End-to-End Management Architecture
+# 17. End-to-End Management Architecture
 
 The complete management architecture can be summarized as:
 
@@ -940,7 +940,7 @@ flowchart TB
 
 ---
 
-# 19. Repository Structure
+# 18. Repository Structure
 
 A typical repository structure is:
 
@@ -973,7 +973,7 @@ A typical repository structure is:
 
 ---
 
-# 20. Management Interface Summary
+# 19. Management Interface Summary
 
 | Area                         | Source                    | Adapter Function                                | Output               |
 | ---------------------------- | ------------------------- | ----------------------------------------------- | -------------------- |
@@ -985,7 +985,7 @@ A typical repository structure is:
 
 ---
 
-# 21. PM Measurement Pipeline Summary
+# 20. PM Measurement Pipeline Summary
 
 ```mermaid
 flowchart LR
@@ -1015,7 +1015,7 @@ The PM implementation therefore provides a standardized, persistent, and FDN-key
 
 ---
 
-# 22. License
+# 21. License
 
 This project is licensed under the **BSD 3-Clause Open MPI variant License**.
 
