@@ -220,56 +220,6 @@ flowchart TB
     RU_CONTROLLER <-->|"NETCONF"| RU
 ```
 
----
-
-# 3. Component Architecture
-
-The main logical components of the O1 Adapter are:
-
-```mermaid
-flowchart LR
-
-    subgraph ADAPTER["OCUDU O1 Adapter"]
-        direction TB
-
-        CM["Configuration Management<br/>NETCONF/YANG"]
-
-        FM["Fault Management<br/>VES"]
-
-        PM["Performance Management<br/>PM Reporter"]
-
-        REST["REST API<br/>Health / Restart"]
-
-        RU["RU Controller<br/>NETCONF / M-Plane"]
-
-        TEMPLATE["Configuration Templates"]
-    end
-
-    NETCONF["NETCONF Server"]
-    GNB["OCUDU CU/DU"]
-    WS["OCUDU Metrics<br/>WebSocket"]
-    VES["SMO VES Collector"]
-    RU_NETCONF["O-RU NETCONF Server"]
-    PMFILE["PM XML File<br/>HTTP :5000"]
-
-    NETCONF <-->|"NETCONF"| CM
-
-    CM --> TEMPLATE
-    TEMPLATE --> GNB
-
-    GNB -->|"Fault information"| FM
-    FM -->|"VES"| VES
-
-    GNB -->|"Metrics JSON"| WS
-    WS --> PM
-
-    PM -->|"3GPP PM XML"| PMFILE
-    PM -->|"fileReady"| VES
-
-    RU <-->|"NETCONF"| RU_NETCONF
-
-    REST -.-> GNB
-```
 
 ---
 
