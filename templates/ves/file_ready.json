@@ -1,0 +1,37 @@
+{
+  "event": {
+    "commonEventHeader": {
+      "startEpochMicrosec": {{ timeStamp }},
+      "eventId": "{{ eventId }}",
+      "timeZoneOffset": "Etc/UTC",
+      "internalHeaderFields": {
+        "collectorTimeStamp": "{{ eventTime }}"
+      },
+      "priority": "Normal",
+      "version": "4.1",
+      "reportingEntityName": "{{ reportingEntityName }}",
+      "sequence": {{ sequence }},
+      "domain": "notification",
+      "lastEpochMicrosec": {{ timeStamp }},
+      "eventName": "Notification_OCUDU_FileReady",
+      "vesEventListenerVersion": "7.2.1",
+      "sourceName": "{{ sourceName }}"
+    },
+    "notificationFields": {
+      "notificationFieldsVersion": "2.0",
+      "changeType": "FileReady",
+      "changeIdentifier": "PM_MEAS_FILES",
+      "arrayOfNamedHashMap": [
+        {
+          "name": "{{ fileName }}",
+          "hashMap": {
+            "location": "{{ ftpLocation }}",
+            "fileFormatType": "org.3GPP.28.532#measData",
+            "fileFormatVersion": "V17.3",
+            "compression": ""
+          }
+        }
+      ]
+    }
+  }
+}

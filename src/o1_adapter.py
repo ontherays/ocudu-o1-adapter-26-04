@@ -24,7 +24,7 @@ import threading
 from contextlib import suppress
 
 import websockets
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from ncclient import manager
 from ncclient.transport.errors import AuthenticationError, SessionCloseError, SSHError, SSHUnknownHostError, TLSError
 
@@ -32,6 +32,7 @@ from alarm_defs import AlarmDefinitions
 from alarm_manager import AlarmEvent, AlarmManager
 from config_manager import ConfigManager
 from pm_metrics import PmMetrics
+from pm_reporter_filetype import pm_reporter_filetype
 from ptp_monitor import ptp_health_checker_consumer, ptp_log_monitor
 from ru_forwarder import RuForwarder
 from state import AppState
@@ -39,6 +40,10 @@ from ves import VesMessages
 
 # Flask app
 app = Flask(__name__)
+
+# Directory where PM XML files are written and served from (must match
+# pm_reporter_filetype output_dir; DFC pulls files from :5000/files/<name>).
+PM_FILE_DIR = os.environ.get("OCUDU_LOG_DIR", "/tmp")
 
 RETRY_INTERVAL = 5  # seconds
 
@@ -84,6 +89,11 @@ def configure_app(state: AppState, auto_heal=False):
     def reset_state():
         state.restart_req = False
         return jsonify({"success": "OK"})
+
+    @app.route("/files/<path:filename>", methods=["GET"])
+    def serve_pm_file(filename):
+        """Serve generated 3GPP PM XML files to the SMO Data File Collector."""
+        return send_from_directory(PM_FILE_DIR, filename)
 
     return app
 
@@ -193,7 +203,7 @@ async def netconf_main(state: AppState, args, alarm_mgr, ru_forwarder=None):
         await asyncio.sleep(RETRY_INTERVAL)
 
 
-async def _run_ws_session(ws, state: AppState, pm_metrics: PmMetrics):
+async def _run_ws_session(ws, state: AppState, pm_metrics: PmMetrics, pm_reporter):
     """Drive one WS connection's sender/receiver/keepalive tasks until one of them exits."""
     # clear pending messages
     logging.debug(f"Clearing {state.ws_send_queue.qsize()} pending WS messages")
@@ -219,6 +229,11 @@ async def _run_ws_session(ws, state: AppState, pm_metrics: PmMetrics):
         try:
             async for msg in ws:
                 await pm_metrics.handle_ws_message(msg)
+                # OSC file-based PM path: aggregate + emit 3GPP XML + fileReady
+                try:
+                    pm_reporter.handle_frame(json.loads(msg))
+                except json.JSONDecodeError:
+                    pass
         except websockets.exceptions.ConnectionClosed:
             return
 
@@ -247,7 +262,7 @@ async def _run_ws_session(ws, state: AppState, pm_metrics: PmMetrics):
             raise exc
 
 
-async def ws_handler(state: AppState, args, alarm_mgr, pm_metrics: PmMetrics):
+async def ws_handler(state: AppState, args, alarm_mgr, pm_metrics: PmMetrics, pm_reporter):
     """WebSocket handler main loop."""
     while True:
         try:
@@ -262,7 +277,7 @@ async def ws_handler(state: AppState, args, alarm_mgr, pm_metrics: PmMetrics):
                     1002,
                     message="WS connection restored",
                 )
-                await _run_ws_session(ws, state, pm_metrics)
+                await _run_ws_session(ws, state, pm_metrics, pm_reporter)
 
         except (
             OSError,
@@ -281,19 +296,20 @@ async def ws_handler(state: AppState, args, alarm_mgr, pm_metrics: PmMetrics):
             await asyncio.sleep(RETRY_INTERVAL)
 
 
-async def orchestrator(args, alarm_mgr):
+async def orchestrator(args, alarm_mgr, ves):
     """Orchestrator: run NETCONF + WebSocket tasks."""
     # Create shared state
     state = AppState()
     ru_forwarder = RuForwarder(state, args, alarm_mgr, RETRY_INTERVAL) if args.ru_forward else None
     pm_metrics = PmMetrics(state, args.profile)
+    pm_reporter = pm_reporter_filetype(ves, interval_s=args.pm_interval)
 
     configure_app(state, args.autoheal)
 
     await asyncio.gather(
         netconf_main(state, args, alarm_mgr, ru_forwarder),
         ru_forwarder.run() if ru_forwarder else asyncio.sleep(0),
-        ws_handler(state, args, alarm_mgr, pm_metrics),
+        ws_handler(state, args, alarm_mgr, pm_metrics, pm_reporter),
         pm_metrics.run_pusher(),
         ptp_log_monitor(args.ptp_log, state.ptp_stats_queue) if args.ptp_log else asyncio.sleep(0),
         (
@@ -477,6 +493,12 @@ if __name__ == "__main__":
         help="VES password",
     )
     parser.add_argument(
+        "--pm_interval",
+        type=int,
+        default=60,
+        help="PM granularity/reporting period in seconds for the file-based PM path",
+    )
+    parser.add_argument(
         "--ves_scheme",
         type=str,
         default="https",
@@ -605,6 +627,6 @@ if __name__ == "__main__":
 
     try:
         # Run NETCONF + WebSocket together
-        asyncio.run(orchestrator(cmd_args, alarms))
+        asyncio.run(orchestrator(cmd_args, alarms, ves))
     except KeyboardInterrupt:
         logging.info("Exiting...")

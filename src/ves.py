@@ -78,6 +78,8 @@ class VesMessages:
         )
         self._send_ves_message(msg)
 
+    
+
     def send_alarm(
         self,
         alarm_id=1001,
@@ -160,6 +162,84 @@ class VesMessages:
         )
         self._send_ves_message(msg)
 
+
+    def send_file_ready(self, file_name, ftp_location):
+        """
+        Sends a PM FileReady notification to the VES collector, indicating a new
+        3GPP PM XML file is available for download (HTTP/SFTP) by the DFC.
+        """
+        current_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        environment = Environment(loader=FileSystemLoader("templates/ves"))
+        try:
+            template = environment.get_template("file_ready.json")
+        except exceptions.TemplateNotFound as e:
+            self.logging.error(f"Template not found: {e}")
+            return
+
+        msg = template.render(
+            eventId="FileReady_" + current_time.isoformat() + "Z",
+            reportingEntityName=self._REPORTING_ENTITY,
+            sourceName=self._SOURCE_NAME,
+            sequence=self.sequence,
+            timeStamp=int(current_time.timestamp() * 1000000),
+            eventTime=current_time.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+            fileName=file_name,
+            ftpLocation=ftp_location,
+        )
+        self._send_ves_message(msg)
+
+    def send_measurement(self, dl_brate, nof_ues):
+        """
+        Sends an inline PM measurement event to the VES collector (optional path;
+        the file-based fileReady path is the OSC-standard one for ran-pm-metrics).
+        """
+        current_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        environment = Environment(loader=FileSystemLoader("templates/ves"))
+        try:
+            template = environment.get_template("measurement.json")
+        except exceptions.TemplateNotFound as e:
+            self.logging.error(f"Template not found: {e}")
+            return
+
+        msg = template.render(
+            eventId="pm_metrics_" + current_time.isoformat() + "Z",
+            reportingEntityName=self._REPORTING_ENTITY,
+            sourceName=self._SOURCE_NAME,
+            sequence=self.sequence,
+            nfNamingCode=self._NF_NAMING_CODE,
+            nfVendorName=self._NF_VENDOR,
+            timeStamp=int(current_time.timestamp() * 1000000),
+            total_dl_brate=str(dl_brate),
+            nof_ues=str(nof_ues),
+        )
+        self._send_ves_message(msg)
+
+    def send_heartbeat(self, heartbeat_interval=60):
+        """
+        Sends a VES heartbeat event to the collector (liveness signal).
+        Populates the SEC_3GPP_HEARTBEAT_OUTPUT domain. Independent of PM/FM.
+        """
+        current_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        environment = Environment(loader=FileSystemLoader("templates/ves"))
+        try:
+            template = environment.get_template("heartbeat.json")
+        except exceptions.TemplateNotFound as e:
+            self.logging.error(f"Template not found: {e}")
+            return
+
+        msg = template.render(
+            eventId="Heartbeat_" + current_time.isoformat() + "Z",
+            reportingEntityName=self._REPORTING_ENTITY,
+            sourceName=self._SOURCE_NAME,
+            sequence=self.sequence,
+            nfNamingCode=self._NF_NAMING_CODE,
+            nfVendorName=self._NF_VENDOR,
+            timeStamp=int(current_time.timestamp() * 1000000),
+            eventTime=current_time.isoformat() + "Z",
+            heartbeatInterval=heartbeat_interval,
+        )
+        self._send_ves_message(msg)
+
     def _send_ves_message(self, msg):
         # Format and send request
         self.logging.debug(f"Request: {msg}")
@@ -184,9 +264,9 @@ class VesMessages:
             return None
 
         if response.status_code >= 200 and response.status_code < 300:
-            self.logging.debug("Alarm delivered successfully")
+            self.logging.debug("VES event delivered successfully")
         else:
-            self.logging.warning(f"Alarm delivery failed (status code: {response.status_code})")
+            self.logging.warning(f"VES event delivery failed (status code: {response.status_code})")
 
         # increase sequence number
         self.sequence = self.sequence + 1

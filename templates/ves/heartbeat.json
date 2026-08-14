@@ -1,0 +1,25 @@
+{
+  "event": {
+    "commonEventHeader": {
+      "domain": "heartbeat",
+      "eventId": "{{ eventId }}",
+      "eventName": "Heartbeat_ocudu",
+      "eventType": "O_RAN_COMPONENT",
+      "priority": "Normal",
+      "reportingEntityName": "{{ reportingEntityName }}",
+      "sequence": {{ sequence }},
+      "sourceName": "{{ sourceName }}",
+      "startEpochMicrosec": {{ timeStamp }},
+      "lastEpochMicrosec": {{ timeStamp }},
+      "nfNamingCode": "{{ nfNamingCode }}",
+      "nfVendorName": "{{ nfVendorName }}",
+      "timeZoneOffset": "+00:00",
+      "version": "4.1",
+      "vesEventListenerVersion": "7.2.1"
+    },
+    "heartbeatFields": {
+      "heartbeatFieldsVersion": "3.0",
+      "heartbeatInterval": {{ heartbeatInterval }}
+    }
+  }
+}
